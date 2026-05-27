@@ -16,7 +16,7 @@ except ImportError:
 
 
 # Configurações
-CAMERA_INDEX = 0  # 0 para webcam padrão
+CAMERA_INDEX = [0, 1]  # 0 para webcam padrão
 SERIAL_PORT = '/dev/ttyACM0'  # Ajuste conforme seu Arduino
 BAUD_RATE = 9600
 PEDESTRIAN_PRESENCE = False
@@ -48,8 +48,9 @@ if HAS_GPIO:
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(PIR_PIN, GPIO.IN)
 
-# Inicializa câmera
-cap = cv2.VideoCapture(CAMERA_INDEX)
+# Inicializa câmeras
+cap1 = cv2.VideoCapture(CAMERA_INDEX[0])
+cap2 = cv2.VideoCapture(CAMERA_INDEX[1])
 
 
 # Inicializa comunicação serial (se não for simulador)
@@ -58,6 +59,11 @@ if not args.simulador:
     try:
         arduino = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
         time.sleep(2)  # Aguarda conexão
+        # Envia comando de inicialização (vermelho)
+        arduino.write(b'R')
+        arduino.flush()  # Garante envio imediato
+        time.sleep(0.5)
+        print(f"Arduino conectado em {SERIAL_PORT}")
     except Exception as e:
         print(f"Erro ao conectar no Arduino: {e}")
         arduino = None
@@ -76,13 +82,29 @@ while True:
     if HAS_GPIO:
         PEDESTRIAN_PRESENCE = GPIO.input(PIR_PIN)
     else:
-        # Simulação: pressione 'p' para simular pedestre
-        if cv2.waitKey(1) & 0xFF == ord('p'):
+        # Simulação: pressione 'p' para simular pedestre, 'g' para verde, 'r' para vermelho
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('p'):
             PEDESTRIAN_PRESENCE = True
+        elif key == ord('g'):
+            # Força sinal verde do pedestre
+            pedestrian_green = True
+            pedestrian_waiting = False
+            last_switch = time.time()
+            pedestrian_queue = False
+            if args.simulador:
+                print("[SIMULADOR] Sinal de pedestre forçado para VERDE (tecla 'g')")
+        elif key == ord('r'):
+            # Força sinal vermelho do pedestre
+            pedestrian_green = False
+            pedestrian_waiting = False
+            last_switch = time.time()
+            if args.simulador:
+                print("[SIMULADOR] Sinal de pedestre forçado para VERMELHO (tecla 'r')")
         else:
             PEDESTRIAN_PRESENCE = False
 
-    ret, frame = cap.read()
+    ret, frame = cap1.read()
     if not ret:
         break
 
@@ -129,6 +151,8 @@ while True:
                 pedestrian_queue = False
                 if arduino:
                     arduino.write(b'G')  # Sinal verde para pedestre
+                    arduino.flush()
+                    print("Comando 'G' enviado ao Arduino")
                 elif args.simulador:
                     print("[SIMULADOR] Sinal de pedestre ficou VERDE")
             # Caso contrário, mantém aguardando (carros abertos, pedestre fechado)
@@ -141,6 +165,8 @@ while True:
                 pedestrian_queue = False
                 if arduino:
                     arduino.write(b'G')  # Sinal verde para pedestre
+                    arduino.flush()
+                    print("Comando 'G' enviado ao Arduino")
                 elif args.simulador:
                     print("[SIMULADOR] Sinal de pedestre ficou VERDE")
 
@@ -195,7 +221,7 @@ while True:
         break
 
 
-cap.release()
+cap1.release()
 cv2.destroyAllWindows()
 if arduino:
     arduino.close()
