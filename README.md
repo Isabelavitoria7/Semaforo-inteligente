@@ -2,7 +2,7 @@
 
 > Cruzamento autônomo que enxerga o trânsito e decide sozinho quando abrir ou fechar o sinal.
 
-Combina **visão computacional** (Python + OpenCV) com **firmware embarcado** (Arduino UNO) para controlar um cruzamento de duas vias de mão única de forma adaptativa — sem ciclos fixos, sem desperdício de verde.
+Combina **visão computacional** (Python + OpenCV) com **firmware embarcado** (Arduino UNO) para controlar um cruzamento de duas vias de mão única de forma adaptativa — sem ciclos fixos.
 
 ---
 <div align="center">
