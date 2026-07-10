@@ -4,12 +4,12 @@
   Semáforo Inteligente — Cruzamento de 2 vias de mão única
   =========================================================
   Mapeamento de pinos:
-    Rua 1  — Carros : Verde=4 | Vermelho=5
-    Rua 2  — Carros : Verde=6 | Vermelho=7
-    Ped Rua 1 (2 semáforos sincronizados): Verde=8  | Vermelho=9
-    Ped Rua 2 (2 semáforos sincronizados): Verde=10 | Vermelho=11
-    Botão pedestre Rua 1 : pino 2 (interrupção INT0)
-    Botão pedestre Rua 2 : pino 3 (interrupção INT1)
+    Rua 1  — Carros : Verde=4 | Amarelo=3 | Vermelho=2
+    Rua 2  — Carros : Verde=7 | Amarelo=6 | Vermelho=5
+    Ped Rua 1 (2 semáforos sincronizados): Verde=9  | Vermelho=8
+    Ped Rua 2 (2 semáforos sincronizados): Verde=11 | Vermelho=10
+    Botão pedestre Rua 1 : A0 (pino 14) — polling
+    Botão pedestre Rua 2 : A1 (pino 15) — polling
 
   Protocolo Serial (Python → Arduino):
     'A' = Rua1 verde,   Rua2 vermelho, PedRua1 vermelho, PedRua2 verde
@@ -25,54 +25,33 @@
 
 // --- Pinos Rua 1 (carros) ---
 #define RUA1_CAR_VERDE 4
-#define RUA1_CAR_AMAR 12
-#define RUA1_CAR_VERM 5
+#define RUA1_CAR_AMAR 3
+#define RUA1_CAR_VERM 2
 
 // --- Pinos Rua 2 (carros) ---
-#define RUA2_CAR_VERDE 6
-#define RUA2_CAR_AMAR 13
-#define RUA2_CAR_VERM 7
+#define RUA2_CAR_VERDE 7
+#define RUA2_CAR_AMAR 6
+#define RUA2_CAR_VERM 5
 
 // --- Pinos Pedestre Rua 1 (2 semáforos sincronizados) ---
-#define PED_RUA1_VERDE 8
-#define PED_RUA1_VERM 9
+#define PED_RUA1_VERDE 9
+#define PED_RUA1_VERM 8
 
 // --- Pinos Pedestre Rua 2 (2 semáforos sincronizados) ---
-#define PED_RUA2_VERDE 10
-#define PED_RUA2_VERM 11
+#define PED_RUA2_VERDE 11
+#define PED_RUA2_VERM 10
 
-// --- Botões ---
-#define BTN_RUA1 2 // INT0
-#define BTN_RUA2 3 // INT1
+// --- Botões (A0=14, A1=15 — polling, sem interrupção no UNO) ---
+#define BTN_RUA1 14 // A0
+#define BTN_RUA2 15 // A1
 
 // --- Debounce ---
 #define DEBOUNCE_MS 200
 
-volatile bool btn1Pressed = false;
-volatile bool btn2Pressed = false;
 unsigned long lastBtn1 = 0;
 unsigned long lastBtn2 = 0;
-
-// Interrupções dos botões
-void ISR_btn1()
-{
-  unsigned long now = millis();
-  if (now - lastBtn1 > DEBOUNCE_MS)
-  {
-    btn1Pressed = true;
-    lastBtn1 = now;
-  }
-}
-
-void ISR_btn2()
-{
-  unsigned long now = millis();
-  if (now - lastBtn2 > DEBOUNCE_MS)
-  {
-    btn2Pressed = true;
-    lastBtn2 = now;
-  }
-}
+bool lastState1 = HIGH;
+bool lastState2 = HIGH;
 
 // Aplica estado: Rua1 amarelo, Rua2 vermelho (todos pedestres fechados — transição)
 void setRua1Amarela()
@@ -167,9 +146,7 @@ void setup()
   pinMode(BTN_RUA1, INPUT_PULLUP);
   pinMode(BTN_RUA2, INPUT_PULLUP);
 
-  // Interrupções nos flancos de descida (botão pressionado = LOW)
-  attachInterrupt(digitalPinToInterrupt(BTN_RUA1), ISR_btn1, FALLING);
-  attachInterrupt(digitalPinToInterrupt(BTN_RUA2), ISR_btn2, FALLING);
+  // A0 e A1 não suportam interrupções no UNO — usando polling no loop()
 
   Serial.begin(9600);
 
@@ -179,17 +156,24 @@ void setup()
 
 void loop()
 {
-  // Reportar botões ao Python
-  if (btn1Pressed)
+  // Leitura de botões por polling com debounce (A0/A1 não suportam interrupção)
+  unsigned long now = millis();
+  bool state1 = digitalRead(BTN_RUA1);
+  bool state2 = digitalRead(BTN_RUA2);
+
+  if (state1 == LOW && lastState1 == HIGH && (now - lastBtn1 > DEBOUNCE_MS))
   {
-    btn1Pressed = false;
+    lastBtn1 = now;
     Serial.write('1');
   }
-  if (btn2Pressed)
+  lastState1 = state1;
+
+  if (state2 == LOW && lastState2 == HIGH && (now - lastBtn2 > DEBOUNCE_MS))
   {
-    btn2Pressed = false;
+    lastBtn2 = now;
     Serial.write('2');
   }
+  lastState2 = state2;
 
   // Processar comandos recebidos do Python
   if (Serial.available())
