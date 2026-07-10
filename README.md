@@ -5,6 +5,8 @@
 Combina **visão computacional** (Python + OpenCV) com **firmware embarcado** (Arduino UNO) para controlar um cruzamento de duas vias de mão única de forma adaptativa — sem ciclos fixos, sem desperdício de verde.
 
 ---
+<img width="760" height="1080" alt="image" src="https://github.com/user-attachments/assets/6279463d-4b66-4e2a-b165-72f09d864b74" />
+<img width="760" height="180" alt="image" src="https://github.com/user-attachments/assets/743e0095-e406-4adc-8708-4f23cceb62b5" />
 
 ## Como funciona
 ┌────────────┐ frame ┌──────────────────┐ serial ┌─────────────┐
@@ -83,17 +85,16 @@ python python_vision/main.py --simulador
 ```
 
 Teclas no modo simulador
-Tecla	Ação
-1	Simula botão de pedestre — Rua 1
-2	Simula botão de pedestre — Rua 2
-q	Encerra o programa
+- 1	Simula botão de pedestre — Rua 1
+- 2	Simula botão de pedestre — Rua 2
+- q	Encerra o programa
 
 ## Requisitos de Hardware
-Arduino UNO e protoboard
-Cerca de 120 jumpers F-f, M-f, m-m
-2 câmeras USB (índices 0 e 1)
-6 LEDs de sinalização (verde, amarelo, vermelho × 2 vias)
-4 LEDs de pedestre (verde e vermelho × 2 cruzamentos)
-2 botões de pedestre
-Cabo USB para comunicação serial (/dev/ttyUSB0)
+- Arduino UNO e protoboard
+- Cerca de 120 jumpers F-f, M-f, m-m
+- 2 câmeras USB (índices 0 e 1)
+- 6 LEDs de sinalização (verde, amarelo, vermelho × 2 vias)
+- 4 LEDs de pedestre (verde e vermelho × 2 cruzamentos)
+- 2 botões de pedestre
+- Cabo USB para comunicação serial (/dev/ttyUSB0)
 
