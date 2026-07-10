@@ -11,13 +11,6 @@ Combina **visão computacional** (Python + OpenCV) com **firmware embarcado** (A
 </div>
 
 ## Como funciona
-┌────────────┐ frame ┌──────────────────┐ serial ┌─────────────┐
-│ Câmera 1 │ ────────► │ │ ──────────► │ │
-│ (Rua 1) │ │ Python (main.py)│ │ Arduino UNO│
-│ Câmera 2 │ ────────► │ MobileNet SSD │ ◄────────── │ (LEDs + │
-│ (Rua 2) │ frame │ TrafficCtrl FSM │ '1' / '2' │ botões) │
-└────────────┘ └──────────────────┘ └─────────────┘
-
 1. Dois feeds de câmera capturam as vias em tempo real.
 2. O modelo **MobileNet SSD** conta carros, ônibus e motos em cada frame.
 3. A **máquina de estados** decide qual via deve ficar verde, por quanto tempo e quando ceder passagem a pedestres.
