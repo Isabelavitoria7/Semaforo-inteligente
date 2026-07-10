@@ -5,7 +5,11 @@ Executa o loop principal de detecção e controle:
   1. Captura frames das 2 câmeras (uma por rua).
   2. Detecta veículos em cada frame via MobileNet SSD.
   3. Atualiza a máquina de estados (TrafficController).
-  4. Envia comandos seriais ao Arduino conforme necessário.
+  4. Envia comandos seriais ao Arduino UNO conforme necessário.
+
+Hardware:
+  Os botões de pedestre estão conectados ao Arduino UNO (pinos 2 e 3).
+  O Arduino envia '1' ou '2' via serial quando um botão é pressionado.
 
 Requisitos:
     pip install opencv-python pyserial numpy
@@ -15,7 +19,8 @@ Uso:
     python main.py --simulador      # Sem Arduino (teclas de atalho)
 
 Teclas (modo simulador):
-    p — simular botão de pedestre
+    1 — simular botão de pedestre Rua 1
+    2 — simular botão de pedestre Rua 2
     q — encerrar
 """
 
@@ -26,13 +31,6 @@ import argparse
 
 import cv2
 
-# Suporte opcional ao Raspberry Pi GPIO
-try:
-    import RPi.GPIO as GPIO  # type: ignore
-    HAS_GPIO = True
-except ImportError:
-    HAS_GPIO = False
-
 # Módulos internos
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from vehicle_detector import VehicleDetector
@@ -42,12 +40,11 @@ from traffic_state import TrafficController, State
 # Configurações
 # ---------------------------------------------------------------------------
 CAMERA_INDEX = [0, 1]        # Câmera 0 → Rua 1 | Câmera 1 → Rua 2
-SERIAL_PORT  = '/dev/ttyACM0'
+SERIAL_PORT  = '/dev/ttyUSB0'
 BAUD_RATE    = 9600
 
-# Pinos GPIO (Raspberry Pi) — botões de pedestre
-BTN_PIN_RUA1 = 17
-BTN_PIN_RUA2 = 27
+# Botões de pedestre gerenciados pelo Arduino UNO (pinos 2 e 3)
+# O Arduino envia '1' ou '2' via serial quando um botão é pressionado.
 
 # ---------------------------------------------------------------------------
 # Argumentos de linha de comando
@@ -82,14 +79,6 @@ if not cap2.isOpened():
     print(f"[AVISO] Câmera {CAMERA_INDEX[1]} (Rua 2) não encontrada.")
 
 # ---------------------------------------------------------------------------
-# Inicializar GPIO (Raspberry Pi)
-# ---------------------------------------------------------------------------
-if HAS_GPIO:
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(BTN_PIN_RUA1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.setup(BTN_PIN_RUA2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
-# ---------------------------------------------------------------------------
 # Inicializar Serial (Arduino)
 # ---------------------------------------------------------------------------
 arduino = None
@@ -98,6 +87,7 @@ if not args.simulador:
         import serial
         arduino = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
         time.sleep(2)  # Aguarda reset do Arduino
+        arduino.reset_input_buffer()  # Descarta lixo do bootloader
         print(f"[SERIAL] Arduino conectado em {SERIAL_PORT}")
     except Exception as exc:
         print(f"[SERIAL] Falha ao conectar: {exc}")
@@ -149,24 +139,18 @@ def overlay_info(frame, road_label: str, count: int,
 print("[MAIN] Iniciando loop. Pressione 'q' para encerrar.")
 
 while True:
-    # --- Leitura de botões (GPIO ou teclado) ---
-    if HAS_GPIO:
-        if GPIO.input(BTN_PIN_RUA1) == GPIO.LOW:
-            controller.button_pressed(road=1)
-        if GPIO.input(BTN_PIN_RUA2) == GPIO.LOW:
-            controller.button_pressed(road=2)
-    else:
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            break
-        elif key == ord('1'):
-            controller.button_pressed(road=1)
-            if args.simulador:
-                print("[SIMULADOR] Botão pedestre Rua 1 pressionado (tecla '1')")
-        elif key == ord('2'):
-            controller.button_pressed(road=2)
-            if args.simulador:
-                print("[SIMULADOR] Botão pedestre Rua 2 pressionado (tecla '2')")
+    # --- Leitura de botões via teclado (apenas no modo simulador) ---
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'):
+        break
+    elif key == ord('1'):
+        controller.button_pressed(road=1)
+        if args.simulador:
+            print("[SIMULADOR] Botão pedestre Rua 1 pressionado (tecla '1')")
+    elif key == ord('2'):
+        controller.button_pressed(road=2)
+        if args.simulador:
+            print("[SIMULADOR] Botão pedestre Rua 2 pressionado (tecla '2')")
 
     # --- Leitura de eventos do Arduino (botões físicos) ---
     if arduino and arduino.in_waiting:
@@ -201,10 +185,7 @@ while True:
                      controller.green_rua2)
         cv2.imshow("Rua 2", frame2_small)
 
-    # Saída via tecla 'q' quando não há GPIO
-    if not HAS_GPIO:
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+
 
 # ---------------------------------------------------------------------------
 # Limpeza
@@ -215,8 +196,5 @@ cv2.destroyAllWindows()
 
 if arduino:
     arduino.close()
-
-if HAS_GPIO:
-    GPIO.cleanup()
 
 print("[MAIN] Encerrado.")
