@@ -5,8 +5,10 @@
 Combina **visão computacional** (Python + OpenCV) com **firmware embarcado** (Arduino UNO) para controlar um cruzamento de duas vias de mão única de forma adaptativa — sem ciclos fixos, sem desperdício de verde.
 
 ---
-<img width="960" height="1280" alt="image" src="https://github.com/user-attachments/assets/6279463d-4b66-4e2a-b165-72f09d864b74" />
-<img width="960" height="1280" alt="image" src="https://github.com/user-attachments/assets/743e0095-e406-4adc-8708-4f23cceb62b5" />
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/6279463d-4b66-4e2a-b165-72f09d864b74" alt="Protótipo 1" width="320"/>
+  <img src="https://github.com/user-attachments/assets/743e0095-e406-4adc-8708-4f23cceb62b5" alt="Protótipo 2" width="320"/>
+</div>
 
 ## Como funciona
 ┌────────────┐ frame ┌──────────────────┐ serial ┌─────────────┐
